@@ -30,6 +30,8 @@ const COLL_PRAGMA_KEY: felt252 = 19514442401534788;
 const DEBT_PRAGMA_KEY: felt252 = 5500394072219931460;
 const THIRD_PRAGMA_KEY: felt252 = 18669995996566340;
 
+const EKUBO_TWAP_PERIOD: u64 = 5 * 60; // 5 minutes
+
 #[derive(Copy, Drop, Serde)]
 struct Users {
     creator: ContractAddress,
@@ -54,6 +56,8 @@ struct Env {
     extension: IDefaultExtensionDispatcher,
     extension_v2: IDefaultExtensionCLDispatcher,
     extension_v3: IDefaultExtensionEKDispatcher,
+    ekubo_core: IMockEkuboCoreDispatcher,
+    ekubo_oracle: IMockEkuboOracleDispatcher,
     config: TestConfig,
     users: Users
 }
@@ -230,7 +234,6 @@ fn setup_env(
         mock_pragma_oracle.set_price(THIRD_PRAGMA_KEY, SCALE_128);
     }
 
-    println!("Setting pool liquidity");
     let debt_asset_pool_key = construct_oracle_pool_key(
         debt_asset.contract_address, quote_asset.contract_address, mock_ekubo_oracle.contract_address
     );
@@ -274,7 +277,16 @@ fn setup_env(
         quote_scale
     };
 
-    Env { singleton, extension, extension_v2, extension_v3, config, users }
+    Env {
+        singleton,
+        extension,
+        extension_v2,
+        extension_v3,
+        ekubo_core: mock_ekubo_core,
+        ekubo_oracle: mock_ekubo_oracle,
+        config,
+        users
+    }
 }
 
 fn test_interest_rate_config() -> InterestRateConfig {
@@ -624,17 +636,17 @@ fn create_pool_v3(
     let collateral_asset_oracle_params = EkuboOracleParams {
         quote_token: config.quote_asset.contract_address,
         quote_token_decimals: config.quote_asset.decimals(),
-        period: 5 * 60 // 5 minutes
+        period: EKUBO_TWAP_PERIOD
     };
     let debt_asset_oracle_params = EkuboOracleParams {
         quote_token: config.quote_asset.contract_address,
         quote_token_decimals: config.quote_asset.decimals(),
-        period: 5 * 60 // 5 minutes
+        period: EKUBO_TWAP_PERIOD
     };
     let third_asset_oracle_params = EkuboOracleParams {
         quote_token: config.quote_asset.contract_address,
         quote_token_decimals: config.quote_asset.decimals(),
-        period: 5 * 60 // 5 minutes
+        period: EKUBO_TWAP_PERIOD
     };
 
     let collateral_asset_v_token_params = VTokenParams { v_token_name: 'Vesu Collateral', v_token_symbol: 'vCOLL' };
