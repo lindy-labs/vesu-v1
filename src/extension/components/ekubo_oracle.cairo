@@ -15,8 +15,8 @@ mod ekubo_oracle_component {
     use vesu::units::SCALE;
     use vesu::vendor::{
         ekubo::{
-            IEkuboOracleDispatcher, IEkuboOracleDispatcherTrait, IEkuboCoreDispatcher, IEkuboCoreDispatcherTrait,
-            PoolKey, EKUBO_CORE, MAX_TICK_SPACING
+            construct_oracle_pool_key, IEkuboOracleDispatcher, IEkuboOracleDispatcherTrait, IEkuboCoreDispatcher,
+            IEkuboCoreDispatcherTrait, PoolKey,
         },
         erc20::{IERC20Dispatcher, IERC20DispatcherTrait}
     };
@@ -25,6 +25,7 @@ mod ekubo_oracle_component {
 
     #[storage]
     struct Storage {
+        core: ContractAddress,
         oracle_address: ContractAddress,
         // (pool_id, asset) -> oracle configuration
         ekubo_oracle_configs: LegacyMap::<(felt252, ContractAddress), EkuboOracleConfig>,
@@ -54,9 +55,24 @@ mod ekubo_oracle_component {
 
     #[generate_trait]
     impl EkuboOracleTrait<TContractState, +HasComponent<TContractState>> of Trait<TContractState> {
+        /// Sets the address of the Ekubo core contract
+        /// # Arguments
+        /// * `core` - address of the Ekubo core contract
+        fn set_core(ref self: ComponentState<TContractState>, core: ContractAddress) {
+            assert!(self.core.read().is_zero(), "core-already-initialized");
+            self.core.write(core);
+        }
+
+        /// Returns the address of the Ekubo core contract
+        /// # Returns
+        /// * `oracle_address` - address of the Ekubo core contract
+        fn core(self: @ComponentState<TContractState>) -> ContractAddress {
+            self.core.read()
+        }
+
         /// Sets the address of the Ekubo oracle extension contract
         /// # Arguments
-        /// * `oracle_address` - address of the Ekubo oracle  extensioncontract
+        /// * `oracle_address` - address of the Ekubo oracle extension contract
         fn set_oracle(ref self: ComponentState<TContractState>, oracle_address: ContractAddress) {
             assert!(self.oracle_address.read().is_zero(), "oracle-already-initialized");
             self.oracle_address.write(oracle_address);
@@ -111,15 +127,11 @@ mod ekubo_oracle_component {
             assert!(ekubo_oracle_config.period.is_non_zero(), "invalid-ekubo-oracle-period");
 
             // check if the pool is liquid
-            let (token0, token1) = core::cmp::minmax(asset, ekubo_oracle_config.quote_token);
+            let pool_key: PoolKey = construct_oracle_pool_key(
+                asset, ekubo_oracle_config.quote_token, self.oracle_address.read()
+            );
 
-            // oracle pools *must* have 0 fee and max tick spacing, so this key is always valid
-            let pool_key = PoolKey {
-                token0, token1, fee: 0, tick_spacing: MAX_TICK_SPACING, extension: self.oracle_address.read()
-            };
-
-            let ekubo_core: ContractAddress = EKUBO_CORE.try_into().unwrap();
-            let liquidity = IEkuboCoreDispatcher { contract_address: ekubo_core }.get_pool_liquidity(pool_key);
+            let liquidity = IEkuboCoreDispatcher { contract_address: self.core.read() }.get_pool_liquidity(pool_key);
             assert!(liquidity.is_non_zero(), "ekubo-oracle-pool-illiquid");
 
             self.ekubo_oracle_configs.write((pool_id, asset), ekubo_oracle_config);

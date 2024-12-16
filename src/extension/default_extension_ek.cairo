@@ -206,10 +206,12 @@ mod DefaultExtensionEK {
     fn constructor(
         ref self: ContractState,
         singleton: ContractAddress,
+        core: ContractAddress,
         oracle_address: ContractAddress,
         v_token_class_hash: felt252
     ) {
         self.singleton.write(singleton);
+        self.ekubo_oracle.set_core(core);
         self.ekubo_oracle.set_oracle(oracle_address);
         self.tokenization.set_v_token_class_hash(v_token_class_hash);
     }
