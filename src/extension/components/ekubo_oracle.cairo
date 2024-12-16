@@ -4,6 +4,7 @@ use starknet::ContractAddress;
 struct EkuboOracleConfig {
     oracle_pool: ContractAddress, // Ekubo Oracle pool address
     quote_token: ContractAddress,
+    quote_token_decimals: u8,
     period: u64 // [seconds]
 }
 
@@ -11,6 +12,7 @@ struct EkuboOracleConfig {
 mod ekubo_oracle_component {
     use starknet::ContractAddress;
     use super::EkuboOracleConfig;
+    use vesu::math::pow_10;
     use vesu::units::SCALE;
     use vesu::vendor::{
         ekubo::{
@@ -61,13 +63,15 @@ mod ekubo_oracle_component {
         /// * `price` - current price of the asset
         /// * `valid` - always `true`
         fn price(self: @ComponentState<TContractState>, pool_id: felt252, asset: ContractAddress) -> (u256, bool) {
-            let EkuboOracleConfig { oracle_pool, quote_token, period } = self
+            let EkuboOracleConfig { oracle_pool, quote_token, quote_token_decimals, period } = self
                 .ekubo_oracle_configs
                 .read((pool_id, asset));
             let oracle = IEkuboOracleDispatcher { contract_address: oracle_pool };
             let price = oracle.get_price_x128_over_last(asset, quote_token, period);
 
-            let price = price * SCALE / TWO_128;
+            let denominator = pow_10(quote_token_decimals.into());
+            let decimal_offset = SCALE / denominator;
+            let price = price * SCALE * decimal_offset / TWO_128;
 
             (price, true)
         }
@@ -87,6 +91,11 @@ mod ekubo_oracle_component {
             assert!(oracle_pool == Zeroable::zero(), "ekubo-oracle-config-already-set");
             assert!(ekubo_oracle_config.oracle_pool.is_non_zero(), "invalid-ekubo-oracle-pool");
             assert!(ekubo_oracle_config.quote_token.is_non_zero(), "invalid-ekubo-oracle-quote-token");
+            assert!(
+                ekubo_oracle_config.quote_token_decimals.is_non_zero()
+                    && ekubo_oracle_config.quote_token_decimals <= 18,
+                "invalid-ekubo-oracle-quote-token-decimals"
+            );
             assert!(ekubo_oracle_config.period.is_non_zero(), "invalid-ekubo-oracle-period");
 
             // check if the pool is liquid

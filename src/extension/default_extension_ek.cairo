@@ -15,6 +15,7 @@ use vesu::{
 struct EkuboOracleParams {
     oracle_pool: ContractAddress, // Ekubo Oracle pool address
     quote_token: ContractAddress,
+    quote_token_decimals: u8,
     period: u64 // [seconds]
 }
 
@@ -473,11 +474,11 @@ mod DefaultExtensionEK {
 
                     // set the oracle config
                     let params = *ekubo_oracle_params.pop_front().unwrap();
-                    let EkuboOracleParams { oracle_pool, quote_token, period } = params;
+                    let EkuboOracleParams { oracle_pool, quote_token, quote_token_decimals, period } = params;
                     self
                         .ekubo_oracle
                         .set_ekubo_oracle_config(
-                            pool_id, asset, EkuboOracleConfig { oracle_pool, quote_token, period }
+                            pool_id, asset, EkuboOracleConfig { oracle_pool, quote_token, quote_token_decimals, period }
                         );
 
                     // set the interest rate model configuration
@@ -563,6 +564,7 @@ mod DefaultExtensionEK {
                     EkuboOracleConfig {
                         oracle_pool: ekubo_oracle_params.oracle_pool,
                         quote_token: ekubo_oracle_params.quote_token,
+                        quote_token_decimals: ekubo_oracle_params.quote_token_decimals,
                         period: ekubo_oracle_params.period
                     }
                 );
