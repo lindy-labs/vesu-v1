@@ -170,7 +170,13 @@ mod TestPragmaOracle {
     #[test]
     fn test_is_valid_timeout() {
         let Env { singleton, extension, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
         );
         let TestConfig { collateral_asset, debt_asset, .. } = config;
 
@@ -214,7 +220,13 @@ mod TestPragmaOracle {
     #[test]
     fn test_is_valid_timeout_stale_price() {
         let Env { singleton, extension, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
         );
         let TestConfig { collateral_asset, debt_asset, .. } = config;
 
@@ -249,7 +261,13 @@ mod TestPragmaOracle {
     #[test]
     fn test_is_valid_sources_reached() {
         let Env { singleton, extension, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
         );
         let TestConfig { collateral_asset, debt_asset, .. } = config;
 
@@ -285,7 +303,13 @@ mod TestPragmaOracle {
     #[test]
     fn test_is_valid_sources_not_reached() {
         let Env { singleton, extension, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
         );
         let TestConfig { collateral_asset, debt_asset, .. } = config;
 

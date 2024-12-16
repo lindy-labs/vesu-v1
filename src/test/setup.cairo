@@ -7,6 +7,9 @@ use vesu::{
     units::{SCALE, SCALE_128, PERCENT, DAY_IN_SECONDS}, singleton::{ISingletonDispatcher, ISingletonDispatcherTrait},
     data_model::{Amount, AmountDenomination, AmountType, ModifyPositionParams, AssetParams, LTVParams},
     extension::interface::{IExtensionDispatcher, IExtensionDispatcherTrait},
+    extension::default_extension_ek::{
+        IDefaultExtensionEKDispatcher, IDefaultExtensionEKDispatcherTrait, EkuboOracleParams
+    },
     extension::default_extension_po::{
         IDefaultExtensionDispatcher, IDefaultExtensionDispatcherTrait, InterestRateConfig, PragmaOracleParams,
         LiquidationParams, ShutdownParams, FeeParams, VTokenParams
@@ -14,8 +17,11 @@ use vesu::{
     extension::default_extension_cl::{
         IDefaultExtensionCLDispatcher, IDefaultExtensionCLDispatcherTrait, ChainlinkOracleParams
     },
+    vendor::ekubo::construct_oracle_pool_key,
     vendor::erc20::{ERC20ABIDispatcher as IERC20Dispatcher, ERC20ABIDispatcherTrait}, math::{pow_10},
     vendor::pragma::{IPragmaABIDispatcher, IPragmaABIDispatcherTrait},
+    test::mock_ekubo_core::{IMockEkuboCoreDispatcher, IMockEkuboCoreDispatcherTrait},
+    test::mock_ekubo_oracle::{IMockEkuboOracleDispatcher, IMockEkuboOracleDispatcherTrait},
     test::mock_oracle::{IMockPragmaOracleDispatcher, IMockPragmaOracleDispatcherTrait},
     test::mock_chainlink_aggregator::{IMockChainlinkAggregatorDispatcher, IMockChainlinkAggregatorDispatcherTrait}
 };
@@ -47,6 +53,7 @@ struct Env {
     singleton: ISingletonDispatcher,
     extension: IDefaultExtensionDispatcher,
     extension_v2: IDefaultExtensionCLDispatcher,
+    extension_v3: IDefaultExtensionEKDispatcher,
     config: TestConfig,
     users: Users
 }
@@ -55,12 +62,15 @@ struct Env {
 struct TestConfig {
     pool_id: felt252,
     pool_id_v2: felt252,
+    pool_id_v3: felt252,
     collateral_asset: IERC20Dispatcher,
     debt_asset: IERC20Dispatcher,
     third_asset: IERC20Dispatcher,
+    quote_asset: IERC20Dispatcher,
     collateral_scale: u256,
     debt_scale: u256,
-    third_scale: u256
+    third_scale: u256,
+    quote_scale: u256
 }
 
 fn deploy_contract(name: ByteArray) -> ContractAddress {
@@ -71,7 +81,9 @@ fn deploy_with_args(name: ByteArray, constructor_args: Array<felt252>) -> Contra
     declare(name).deploy(@constructor_args).unwrap()
 }
 
-fn deploy_assets(recipient: ContractAddress) -> (IERC20Dispatcher, IERC20Dispatcher, IERC20Dispatcher) {
+fn deploy_assets(
+    recipient: ContractAddress
+) -> (IERC20Dispatcher, IERC20Dispatcher, IERC20Dispatcher, IERC20Dispatcher) {
     let class = declare("MockAsset");
 
     // mint 100 collateral and debt assets
@@ -93,7 +105,12 @@ fn deploy_assets(recipient: ContractAddress) -> (IERC20Dispatcher, IERC20Dispatc
     let calldata = array!['Third', 'THIRD', decimals.into(), supply.low.into(), supply.high.into(), recipient.into()];
     let third_asset = IERC20Dispatcher { contract_address: class.deploy(@calldata).unwrap() };
 
-    (collateral_asset, debt_asset, third_asset)
+    let decimals = 8;
+    let supply = 100 * pow_10(decimals);
+    let calldata = array!['Quote', 'QUOTE', decimals.into(), supply.low.into(), supply.high.into(), recipient.into()];
+    let quote_asset = IERC20Dispatcher { contract_address: class.deploy(@calldata).unwrap() };
+
+    (collateral_asset, debt_asset, third_asset, quote_asset)
 }
 
 fn deploy_asset(class: ContractClass, recipient: ContractAddress) -> IERC20Dispatcher {
@@ -112,7 +129,10 @@ fn setup_env(
     oracle_address: ContractAddress,
     collateral_address: ContractAddress,
     debt_address: ContractAddress,
-    third_address: ContractAddress
+    third_address: ContractAddress,
+    quote_address: ContractAddress,
+    ekubo_core_address: ContractAddress,
+    ekubo_oracle_address: ContractAddress
 ) -> Env {
     let singleton = ISingletonDispatcher { contract_address: deploy_contract("Singleton") };
 
@@ -133,6 +153,22 @@ fn setup_env(
         }
     };
 
+    let mock_ekubo_core = IMockEkuboCoreDispatcher {
+        contract_address: if ekubo_core_address.is_non_zero() {
+            ekubo_core_address
+        } else {
+            deploy_contract("MockEkuboCore")
+        }
+    };
+
+    let mock_ekubo_oracle = IMockEkuboOracleDispatcher {
+        contract_address: if ekubo_oracle_address.is_non_zero() {
+            ekubo_oracle_address
+        } else {
+            deploy_contract("MockEkuboOracle")
+        }
+    };
+
     let v_token_class_hash = declare("VToken").class_hash;
 
     let args = array![
@@ -143,14 +179,24 @@ fn setup_env(
     let args = array![singleton.contract_address.into(), v_token_class_hash.into()];
     let extension_v2 = IDefaultExtensionCLDispatcher { contract_address: deploy_with_args("DefaultExtensionCL", args) };
 
+    let args = array![
+        singleton.contract_address.into(),
+        mock_ekubo_core.contract_address.into(),
+        mock_ekubo_oracle.contract_address.into(),
+        v_token_class_hash.into()
+    ];
+    let extension_v3 = IDefaultExtensionEKDispatcher { contract_address: deploy_with_args("DefaultExtensionEK", args) };
+
     // deploy collateral and borrow assets
-    let (collateral_asset, debt_asset, third_asset) = if collateral_address.is_non_zero()
+    let (collateral_asset, debt_asset, third_asset, quote_asset) = if collateral_address.is_non_zero()
         && debt_address.is_non_zero()
-        && third_address.is_non_zero() {
+        && third_address.is_non_zero()
+        && quote_address.is_non_zero() {
         (
             IERC20Dispatcher { contract_address: collateral_address },
             IERC20Dispatcher { contract_address: debt_address },
-            IERC20Dispatcher { contract_address: third_address }
+            IERC20Dispatcher { contract_address: third_address },
+            IERC20Dispatcher { contract_address: quote_address }
         )
     } else {
         deploy_assets(users.lender)
@@ -184,17 +230,51 @@ fn setup_env(
         mock_pragma_oracle.set_price(THIRD_PRAGMA_KEY, SCALE_128);
     }
 
+    println!("Setting pool liquidity");
+    let debt_asset_pool_key = construct_oracle_pool_key(
+        debt_asset.contract_address, quote_asset.contract_address, mock_ekubo_oracle.contract_address
+    );
+    let collateral_asset_pool_key = construct_oracle_pool_key(
+        collateral_asset.contract_address, quote_asset.contract_address, mock_ekubo_oracle.contract_address
+    );
+    let third_asset_pool_key = construct_oracle_pool_key(
+        third_asset.contract_address, quote_asset.contract_address, mock_ekubo_oracle.contract_address
+    );
+
+    mock_ekubo_core.set_pool_liquidity(debt_asset_pool_key, integer::BoundedInt::max());
+    mock_ekubo_core.set_pool_liquidity(collateral_asset_pool_key, integer::BoundedInt::max());
+    mock_ekubo_core.set_pool_liquidity(third_asset_pool_key, integer::BoundedInt::max());
+
+    if ekubo_oracle_address.is_zero() {
+        mock_ekubo_oracle.set_price_x128(debt_asset.contract_address, quote_asset.contract_address, SCALE_128.into());
+        mock_ekubo_oracle
+            .set_price_x128(collateral_asset.contract_address, quote_asset.contract_address, SCALE_128.into());
+        mock_ekubo_oracle.set_price_x128(third_asset.contract_address, quote_asset.contract_address, SCALE_128.into());
+    }
+
     // create pool config
     let pool_id = singleton.calculate_pool_id(extension.contract_address, 1);
     let pool_id_v2 = singleton.calculate_pool_id(extension_v2.contract_address, 1);
+    let pool_id_v3 = singleton.calculate_pool_id(extension_v3.contract_address, 1);
     let collateral_scale = pow_10(collateral_asset.decimals().into());
     let debt_scale = pow_10(debt_asset.decimals().into());
     let third_scale = pow_10(third_asset.decimals().into());
+    let quote_scale = pow_10(quote_asset.decimals().into());
     let config = TestConfig {
-        pool_id, pool_id_v2, collateral_asset, debt_asset, collateral_scale, debt_scale, third_asset, third_scale
+        pool_id,
+        pool_id_v2,
+        pool_id_v3,
+        collateral_asset,
+        debt_asset,
+        quote_asset,
+        collateral_scale,
+        debt_scale,
+        third_asset,
+        third_scale,
+        quote_scale
     };
 
-    Env { singleton, extension, extension_v2, config, users }
+    Env { singleton, extension, extension_v2, extension_v3, config, users }
 }
 
 fn test_interest_rate_config() -> InterestRateConfig {
@@ -505,16 +585,180 @@ fn create_pool_v2(
     );
 }
 
+fn create_pool_v3(
+    extension: IDefaultExtensionEKDispatcher,
+    config: TestConfig,
+    creator: ContractAddress,
+    interest_rate_config: Option<InterestRateConfig>,
+) {
+    let interest_rate_config = interest_rate_config.unwrap_or(test_interest_rate_config());
+
+    let collateral_asset_params = AssetParams {
+        asset: config.collateral_asset.contract_address,
+        floor: SCALE / 10_000,
+        initial_rate_accumulator: SCALE,
+        initial_full_utilization_rate: (1582470460 + 32150205761) / 2,
+        max_utilization: SCALE,
+        is_legacy: true,
+        fee_rate: 0
+    };
+    let debt_asset_params = AssetParams {
+        asset: config.debt_asset.contract_address,
+        floor: SCALE / 10_000,
+        initial_rate_accumulator: SCALE,
+        initial_full_utilization_rate: (1582470460 + 32150205761) / 2,
+        max_utilization: SCALE,
+        is_legacy: false,
+        fee_rate: 0
+    };
+    let third_asset_params = AssetParams {
+        asset: config.third_asset.contract_address,
+        floor: SCALE / 10_000,
+        initial_rate_accumulator: SCALE,
+        initial_full_utilization_rate: (1582470460 + 32150205761) / 2,
+        max_utilization: SCALE,
+        is_legacy: false,
+        fee_rate: 1 * PERCENT
+    };
+
+    let collateral_asset_oracle_params = EkuboOracleParams {
+        quote_token: config.quote_asset.contract_address,
+        quote_token_decimals: config.quote_asset.decimals(),
+        period: 5 * 60 // 5 minutes
+    };
+    let debt_asset_oracle_params = EkuboOracleParams {
+        quote_token: config.quote_asset.contract_address,
+        quote_token_decimals: config.quote_asset.decimals(),
+        period: 5 * 60 // 5 minutes
+    };
+    let third_asset_oracle_params = EkuboOracleParams {
+        quote_token: config.quote_asset.contract_address,
+        quote_token_decimals: config.quote_asset.decimals(),
+        period: 5 * 60 // 5 minutes
+    };
+
+    let collateral_asset_v_token_params = VTokenParams { v_token_name: 'Vesu Collateral', v_token_symbol: 'vCOLL' };
+    let debt_asset_v_token_params = VTokenParams { v_token_name: 'Vesu Debt', v_token_symbol: 'vDEBT' };
+    let third_asset_v_token_params = VTokenParams { v_token_name: 'Vesu Third', v_token_symbol: 'vTHIRD' };
+
+    // create ltv config for collateral and borrow assets
+    let max_position_ltv_params_0 = LTVParams {
+        collateral_asset_index: 1, debt_asset_index: 0, max_ltv: (80 * PERCENT).try_into().unwrap()
+    };
+    let max_position_ltv_params_1 = LTVParams {
+        collateral_asset_index: 0, debt_asset_index: 1, max_ltv: (80 * PERCENT).try_into().unwrap()
+    };
+    let max_position_ltv_params_2 = LTVParams {
+        collateral_asset_index: 0, debt_asset_index: 2, max_ltv: (85 * PERCENT).try_into().unwrap()
+    };
+    let max_position_ltv_params_3 = LTVParams {
+        collateral_asset_index: 2, debt_asset_index: 1, max_ltv: (85 * PERCENT).try_into().unwrap()
+    };
+
+    let liquidation_params_0 = LiquidationParams {
+        collateral_asset_index: 0, debt_asset_index: 1, liquidation_factor: 0
+    };
+    let liquidation_params_1 = LiquidationParams {
+        collateral_asset_index: 1, debt_asset_index: 0, liquidation_factor: 0
+    };
+    let liquidation_params_2 = LiquidationParams {
+        collateral_asset_index: 0, debt_asset_index: 2, liquidation_factor: 0
+    };
+    let liquidation_params_3 = LiquidationParams {
+        collateral_asset_index: 2, debt_asset_index: 1, liquidation_factor: 0
+    };
+
+    let shutdown_ltv_params_0 = LTVParams {
+        collateral_asset_index: 1, debt_asset_index: 0, max_ltv: (75 * PERCENT).try_into().unwrap()
+    };
+    let shutdown_ltv_params_1 = LTVParams {
+        collateral_asset_index: 0, debt_asset_index: 1, max_ltv: (75 * PERCENT).try_into().unwrap()
+    };
+    let shutdown_ltv_params_2 = LTVParams {
+        collateral_asset_index: 0, debt_asset_index: 2, max_ltv: (75 * PERCENT).try_into().unwrap()
+    };
+    let shutdown_ltv_params_3 = LTVParams {
+        collateral_asset_index: 2, debt_asset_index: 1, max_ltv: (75 * PERCENT).try_into().unwrap()
+    };
+    let shutdown_ltv_params = array![
+        shutdown_ltv_params_0, shutdown_ltv_params_1, shutdown_ltv_params_2, shutdown_ltv_params_3
+    ]
+        .span();
+
+    let asset_params = array![collateral_asset_params, debt_asset_params, third_asset_params].span();
+    let v_token_params = array![collateral_asset_v_token_params, debt_asset_v_token_params, third_asset_v_token_params]
+        .span();
+    let max_position_ltv_params = array![
+        max_position_ltv_params_0, max_position_ltv_params_1, max_position_ltv_params_2, max_position_ltv_params_3
+    ]
+        .span();
+    let interest_rate_configs = array![interest_rate_config, interest_rate_config, interest_rate_config].span();
+    let chainlink_oracle_params = array![
+        collateral_asset_oracle_params, debt_asset_oracle_params, third_asset_oracle_params
+    ]
+        .span();
+    let liquidation_params = array![
+        liquidation_params_0, liquidation_params_1, liquidation_params_2, liquidation_params_3
+    ]
+        .span();
+    let shutdown_params = ShutdownParams {
+        recovery_period: DAY_IN_SECONDS, subscription_period: DAY_IN_SECONDS, ltv_params: shutdown_ltv_params
+    };
+
+    start_prank(CheatTarget::One(extension.contract_address), creator);
+    extension
+        .create_pool(
+            asset_params,
+            v_token_params,
+            max_position_ltv_params,
+            interest_rate_configs,
+            chainlink_oracle_params,
+            liquidation_params,
+            shutdown_params,
+            FeeParams { fee_recipient: creator },
+            creator
+        );
+    stop_prank(CheatTarget::One(extension.contract_address));
+
+    let coll_v_token = extension
+        .v_token_for_collateral_asset(config.pool_id_v3, config.collateral_asset.contract_address);
+    let debt_v_token = extension.v_token_for_collateral_asset(config.pool_id_v3, config.debt_asset.contract_address);
+    let third_v_token = extension.v_token_for_collateral_asset(config.pool_id_v3, config.third_asset.contract_address);
+
+    assert!(coll_v_token != Zeroable::zero(), "vToken not set");
+    assert!(debt_v_token != Zeroable::zero(), "vToken not set");
+    assert!(third_v_token != Zeroable::zero(), "vToken not set");
+
+    assert!(
+        extension.collateral_asset_for_v_token(config.pool_id_v3, coll_v_token) != Zeroable::zero(), "vToken not set"
+    );
+    assert!(
+        extension.collateral_asset_for_v_token(config.pool_id_v3, debt_v_token) != Zeroable::zero(), "vToken not set"
+    );
+    assert!(
+        extension.collateral_asset_for_v_token(config.pool_id_v3, third_v_token) != Zeroable::zero(), "vToken not set"
+    );
+}
+
 fn setup_pool(
     oracle_address: ContractAddress,
     collateral_address: ContractAddress,
     debt_address: ContractAddress,
     third_address: ContractAddress,
+    quote_address: ContractAddress,
+    ekubo_core_address: ContractAddress,
+    ekubo_oracle_address: ContractAddress,
     fund_borrower: bool,
     interest_rate_config: Option<InterestRateConfig>,
 ) -> (ISingletonDispatcher, IDefaultExtensionDispatcher, TestConfig, Users, LendingTerms) {
     let Env { singleton, extension, config, users, .. } = setup_env(
-        oracle_address, collateral_address, debt_address, third_address
+        oracle_address,
+        collateral_address,
+        debt_address,
+        third_address,
+        quote_address,
+        ekubo_core_address,
+        ekubo_oracle_address,
     );
 
     create_pool(extension, config, users.creator, interest_rate_config);
@@ -699,5 +943,15 @@ fn setup_pool(
 }
 
 fn setup() -> (ISingletonDispatcher, IDefaultExtensionDispatcher, TestConfig, Users, LendingTerms) {
-    setup_pool(Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), true, Option::None)
+    setup_pool(
+        Zeroable::zero(),
+        Zeroable::zero(),
+        Zeroable::zero(),
+        Zeroable::zero(),
+        Zeroable::zero(),
+        Zeroable::zero(),
+        Zeroable::zero(),
+        true,
+        Option::None
+    )
 }

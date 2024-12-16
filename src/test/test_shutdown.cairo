@@ -1916,6 +1916,9 @@ mod TestShutdown {
             Zeroable::zero(),
             Zeroable::zero(),
             Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
             true,
             Option::Some(interest_rate_config)
         );
