@@ -2,7 +2,6 @@ use starknet::ContractAddress;
 
 #[derive(PartialEq, Copy, Drop, Serde, starknet::Store)]
 struct EkuboOracleConfig {
-    oracle_pool: ContractAddress, // Ekubo Oracle pool address
     quote_token: ContractAddress,
     quote_token_decimals: u8,
     period: u64 // [seconds]
@@ -26,6 +25,7 @@ mod ekubo_oracle_component {
 
     #[storage]
     struct Storage {
+        oracle_address: ContractAddress,
         // (pool_id, asset) -> oracle configuration
         ekubo_oracle_configs: LegacyMap::<(felt252, ContractAddress), EkuboOracleConfig>,
     }
@@ -54,6 +54,21 @@ mod ekubo_oracle_component {
 
     #[generate_trait]
     impl EkuboOracleTrait<TContractState, +HasComponent<TContractState>> of Trait<TContractState> {
+        /// Sets the address of the Ekubo oracle extension contract
+        /// # Arguments
+        /// * `oracle_address` - address of the Ekubo oracle  extensioncontract
+        fn set_oracle(ref self: ComponentState<TContractState>, oracle_address: ContractAddress) {
+            assert!(self.oracle_address.read().is_zero(), "oracle-already-initialized");
+            self.oracle_address.write(oracle_address);
+        }
+
+        /// Returns the address of the Ekubo oracle extension contract
+        /// # Returns
+        /// * `oracle_address` - address of the Ekubo oracle extension contract
+        fn oracle_address(self: @ComponentState<TContractState>) -> ContractAddress {
+            self.oracle_address.read()
+        }
+
         /// Returns the current price for an asset in a given pool and the validity status of the price.
         /// Status is always true, since it's a single onchain source.
         /// # Arguments
@@ -63,10 +78,10 @@ mod ekubo_oracle_component {
         /// * `price` - current price of the asset
         /// * `valid` - always `true`
         fn price(self: @ComponentState<TContractState>, pool_id: felt252, asset: ContractAddress) -> (u256, bool) {
-            let EkuboOracleConfig { oracle_pool, quote_token, quote_token_decimals, period } = self
+            let EkuboOracleConfig { quote_token, quote_token_decimals, period } = self
                 .ekubo_oracle_configs
                 .read((pool_id, asset));
-            let oracle = IEkuboOracleDispatcher { contract_address: oracle_pool };
+            let oracle = IEkuboOracleDispatcher { contract_address: self.oracle_address.read() };
             let price = oracle.get_price_x128_over_last(asset, quote_token, period);
 
             let denominator = pow_10(quote_token_decimals.into());
@@ -87,9 +102,6 @@ mod ekubo_oracle_component {
             asset: ContractAddress,
             ekubo_oracle_config: EkuboOracleConfig
         ) {
-            let EkuboOracleConfig { oracle_pool, .. } = self.ekubo_oracle_configs.read((pool_id, asset));
-            assert!(oracle_pool == Zeroable::zero(), "ekubo-oracle-config-already-set");
-            assert!(ekubo_oracle_config.oracle_pool.is_non_zero(), "invalid-ekubo-oracle-pool");
             assert!(ekubo_oracle_config.quote_token.is_non_zero(), "invalid-ekubo-oracle-quote-token");
             assert!(
                 ekubo_oracle_config.quote_token_decimals.is_non_zero()
@@ -103,7 +115,7 @@ mod ekubo_oracle_component {
 
             // oracle pools *must* have 0 fee and max tick spacing, so this key is always valid
             let pool_key = PoolKey {
-                token0, token1, fee: 0, tick_spacing: MAX_TICK_SPACING, extension: ekubo_oracle_config.oracle_pool
+                token0, token1, fee: 0, tick_spacing: MAX_TICK_SPACING, extension: self.oracle_address.read()
             };
 
             let ekubo_core: ContractAddress = EKUBO_CORE.try_into().unwrap();

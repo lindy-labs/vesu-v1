@@ -13,7 +13,6 @@ use vesu::{
 
 #[derive(PartialEq, Copy, Drop, Serde)]
 struct EkuboOracleParams {
-    oracle_pool: ContractAddress, // Ekubo Oracle pool address
     quote_token: ContractAddress,
     quote_token_decimals: u8,
     period: u64 // [seconds]
@@ -22,6 +21,7 @@ struct EkuboOracleParams {
 #[starknet::interface]
 trait IDefaultExtensionEK<TContractState> {
     fn pool_owner(self: @TContractState, pool_id: felt252) -> ContractAddress;
+    fn ekubo_oracle(self: @TContractState) -> ContractAddress;
     fn ekubo_oracle_config(self: @TContractState, pool_id: felt252, asset: ContractAddress) -> EkuboOracleConfig;
     fn debt_caps(self: @TContractState, pool_id: felt252, asset: ContractAddress) -> u256;
     fn fee_config(self: @TContractState, pool_id: felt252) -> FeeConfig;
@@ -203,8 +203,14 @@ mod DefaultExtensionEK {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, singleton: ContractAddress, v_token_class_hash: felt252) {
+    fn constructor(
+        ref self: ContractState,
+        singleton: ContractAddress,
+        oracle_address: ContractAddress,
+        v_token_class_hash: felt252
+    ) {
         self.singleton.write(singleton);
+        self.ekubo_oracle.set_oracle(oracle_address);
         self.tokenization.set_v_token_class_hash(v_token_class_hash);
     }
 
@@ -272,6 +278,13 @@ mod DefaultExtensionEK {
         /// * `owner` - address of the owner
         fn pool_owner(self: @ContractState, pool_id: felt252) -> ContractAddress {
             self.owner.read(pool_id)
+        }
+
+        /// Returns the address of the Ekubo oracle extension contract
+        /// # Returns
+        /// * `oracle_address` - address of the Ekubo oracle extension contract
+        fn ekubo_oracle(self: @ContractState) -> ContractAddress {
+            self.ekubo_oracle.oracle_address()
         }
 
         /// Returns the Ekubo oracle configuration for a given pool and asset
@@ -474,11 +487,11 @@ mod DefaultExtensionEK {
 
                     // set the oracle config
                     let params = *ekubo_oracle_params.pop_front().unwrap();
-                    let EkuboOracleParams { oracle_pool, quote_token, quote_token_decimals, period } = params;
+                    let EkuboOracleParams { quote_token, quote_token_decimals, period } = params;
                     self
                         .ekubo_oracle
                         .set_ekubo_oracle_config(
-                            pool_id, asset, EkuboOracleConfig { oracle_pool, quote_token, quote_token_decimals, period }
+                            pool_id, asset, EkuboOracleConfig { quote_token, quote_token_decimals, period }
                         );
 
                     // set the interest rate model configuration
@@ -562,7 +575,6 @@ mod DefaultExtensionEK {
                     pool_id,
                     asset,
                     EkuboOracleConfig {
-                        oracle_pool: ekubo_oracle_params.oracle_pool,
                         quote_token: ekubo_oracle_params.quote_token,
                         quote_token_decimals: ekubo_oracle_params.quote_token_decimals,
                         period: ekubo_oracle_params.period
