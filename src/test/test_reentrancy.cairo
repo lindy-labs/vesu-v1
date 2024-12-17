@@ -17,7 +17,7 @@ mod TestReentrancy {
     #[should_panic(expected: "context-reentrancy")]
     fn test_context_reentrancy() {
         let Env { singleton, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
         let TestConfig { debt_asset, debt_scale, .. } = config;
 
@@ -79,7 +79,7 @@ mod TestReentrancy {
     #[should_panic(expected: "asset-config-reentrancy")]
     fn test_asset_config_reentrancy() {
         let Env { singleton, config, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
         let TestConfig { debt_asset, .. } = config;
 

@@ -786,9 +786,6 @@ fn setup_pool(
     collateral_address: ContractAddress,
     debt_address: ContractAddress,
     third_address: ContractAddress,
-    quote_address: ContractAddress,
-    ekubo_core_address: ContractAddress,
-    ekubo_oracle_address: ContractAddress,
     fund_borrower: bool,
     interest_rate_config: Option<InterestRateConfig>,
 ) -> (ISingletonDispatcher, IDefaultExtensionDispatcher, TestConfig, Users, LendingTerms) {
@@ -978,15 +975,5 @@ fn setup_pool(
 }
 
 fn setup() -> (ISingletonDispatcher, IDefaultExtensionDispatcher, TestConfig, Users, LendingTerms) {
-    setup_pool(
-        Zeroable::zero(),
-        Zeroable::zero(),
-        Zeroable::zero(),
-        Zeroable::zero(),
-        Zeroable::zero(),
-        Zeroable::zero(),
-        Zeroable::zero(),
-        true,
-        Option::None
-    )
+    setup_pool(Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), true, Option::None)
 }

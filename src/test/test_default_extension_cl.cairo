@@ -22,7 +22,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_create_pool_v2() {
         let Env { singleton, extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         let old_creator_nonce = singleton.creator_nonce(extension_v2.contract_address);
@@ -58,7 +58,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "empty-asset-params")]
     fn test_create_pool_empty_asset_params() {
         let Env { extension_v2, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         let asset_params = array![].span();
@@ -92,7 +92,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "interest-rate-params-mismatch")]
     fn test_create_pool_interest_rate_params_mismatch() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         let collateral_asset_params = AssetParams {
@@ -138,7 +138,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "chainlink-oracle-params-mismatch")]
     fn chainlink_oracle_params_mismatch() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         let collateral_asset_params = AssetParams {
@@ -184,7 +184,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "v-token-params-mismatch")]
     fn test_create_pool_v_token_params_mismatch() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         let collateral_asset_params = AssetParams {
@@ -230,7 +230,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "caller-not-owner")]
     fn test_add_asset_not_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -274,7 +274,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "chainlink-oracle-config-already-set")]
     fn test_add_asset_oracle_config_already_set() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -316,7 +316,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "chainlink-aggregator-must-be-set")]
     fn test_add_asset_chainlink_aggregator_must_be_set() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -361,7 +361,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_add_asset() {
         let Env { singleton, extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -417,7 +417,7 @@ mod TestDefaultExtensionCL {
     //     println!("{}", get_block_number());
 
     //     let Env { singleton, extension_v2, config, users, .. } = setup_env(
-    //         Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+    //         Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
     //     );
 
     //     create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -472,7 +472,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "caller-not-owner")]
     fn test_extension_set_asset_parameter_not_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -484,7 +484,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_extension_set_asset_parameter() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -508,7 +508,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "caller-not-owner")]
     fn test_set_pool_owner_not_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -519,7 +519,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_set_pool_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -533,7 +533,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "caller-not-owner")]
     fn test_set_ltv_config_caller_not_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -550,7 +550,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_extension_set_ltv_config() {
         let Env { singleton, extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -579,7 +579,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "caller-not-owner")]
     fn test_extension_set_liquidation_config_caller_not_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -598,7 +598,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_extension_set_liquidation_config() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -626,7 +626,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_extension_set_shutdown_config() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -648,7 +648,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "caller-not-owner")]
     fn test_extension_set_shutdown_config_caller_not_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -663,7 +663,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "invalid-shutdown-config")]
     fn test_extension_set_shutdown_config_invalid_shutdown_config() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -679,7 +679,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_extension_set_shutdown_ltv_config() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -708,7 +708,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "caller-not-owner")]
     fn test_extension_set_shutdown_ltv_config_caller_not_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -728,7 +728,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "invalid-ltv-config")]
     fn test_extension_set_shutdown_ltv_config_invalid_ltv_config() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -749,7 +749,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_set_extension() {
         let Env { singleton, extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -765,7 +765,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "caller-not-owner")]
     fn test_set_extension_not_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -776,7 +776,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_extension_set_oracle_parameter() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -797,7 +797,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "caller-not-owner")]
     fn test_extension_set_oracle_parameter_caller_not_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -812,7 +812,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "invalid-chainlink-oracle-parameter")]
     fn test_extension_set_oracle_parameter_invalid_oracle_parameter() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -827,7 +827,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "chainlink-oracle-config-not-set")]
     fn test_extension_set_oracle_parameter_oracle_config_not_set() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -840,7 +840,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_extension_set_interest_rate_parameter() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -930,7 +930,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "caller-not-owner")]
     fn test_extension_set_interest_rate_parameter_caller_not_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -945,7 +945,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "invalid-interest-rate-parameter")]
     fn test_extension_set_interest_rate_parameter_invalid_interest_rate_parameter() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -959,7 +959,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "interest-rate-config-not-set")]
     fn test_extension_set_interest_rate_parameter_interest_rate_config_not_set() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -972,7 +972,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_extension_set_fee_config() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -989,7 +989,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "caller-not-owner")]
     fn test_extension_set_fee_config_caller_not_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -1000,7 +1000,7 @@ mod TestDefaultExtensionCL {
     #[test]
     fn test_extension_set_debt_cap() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
@@ -1016,7 +1016,7 @@ mod TestDefaultExtensionCL {
     #[should_panic(expected: "caller-not-owner")]
     fn test_extension_set_debt_cap_caller_not_owner() {
         let Env { extension_v2, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
         );
 
         create_pool_v2(extension_v2, config, users.creator, Option::None);
