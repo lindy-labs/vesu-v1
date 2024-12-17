@@ -16,7 +16,7 @@ mod TestDefaultExtensionPO {
     #[test]
     fn test_create_pool() {
         let Env { singleton, extension, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         let old_creator_nonce = singleton.creator_nonce(extension.contract_address);
@@ -48,7 +48,7 @@ mod TestDefaultExtensionPO {
     #[should_panic(expected: "empty-asset-params")]
     fn test_create_pool_empty_asset_params() {
         let Env { extension, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         let asset_params = array![].span();
@@ -82,7 +82,7 @@ mod TestDefaultExtensionPO {
     #[should_panic(expected: "interest-rate-params-mismatch")]
     fn test_create_pool_interest_rate_params_mismatch() {
         let Env { extension, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         let collateral_asset_params = AssetParams {
@@ -128,7 +128,7 @@ mod TestDefaultExtensionPO {
     #[should_panic(expected: "pragma-oracle-params-mismatch")]
     fn test_create_pool_pragma_oracle_params_mismatch() {
         let Env { extension, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         let collateral_asset_params = AssetParams {
@@ -174,7 +174,7 @@ mod TestDefaultExtensionPO {
     #[should_panic(expected: "v-token-params-mismatch")]
     fn test_create_pool_v_token_params_mismatch() {
         let Env { extension, config, users, .. } = setup_env(
-            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero()
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         let collateral_asset_params = AssetParams {
