@@ -152,6 +152,7 @@ mod ekubo_oracle_component {
             value: u64
         ) {
             let mut ekubo_oracle_config: EkuboOracleConfig = self.ekubo_oracle_configs.read((pool_id, asset));
+            assert!(ekubo_oracle_config.quote_token != Zeroable::zero(), "ekubo-oracle-config-not-set");
 
             if parameter == 'period' {
                 assert!(value != 0, "invalid-ekubo-oracle-period-value");
