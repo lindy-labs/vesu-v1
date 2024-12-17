@@ -5,7 +5,7 @@ mod TestDefaultExtensionEK {
     use vesu::{
         units::{SCALE, SCALE_128, PERCENT, DAY_IN_SECONDS}, test::mock_ekubo_core::IMockEkuboCoreDispatcherTrait,
         test::setup::{
-            setup_env, create_pool_v3, TestConfig, deploy_assets, deploy_asset, Env, EKUBO_TWAP_PERIOD,
+            setup_env_v3, create_pool_v3, TestConfigV3, deploy_assets, deploy_asset, EnvV3, EKUBO_TWAP_PERIOD,
             test_interest_rate_config
         },
         singleton::{ISingletonDispatcherTrait}, data_model::{AssetParams, LTVParams, LTVConfig},
@@ -18,7 +18,7 @@ mod TestDefaultExtensionEK {
 
     #[test]
     fn test_create_pool() {
-        let Env { singleton, extension_v3, config, users, .. } = setup_env(
+        let EnvV3 { singleton, extension_v3, config, users, .. } = setup_env_v3(
             Zeroable::zero(),
             Zeroable::zero(),
             Zeroable::zero(),
@@ -35,7 +35,7 @@ mod TestDefaultExtensionEK {
         let new_creator_nonce = singleton.creator_nonce(extension_v3.contract_address);
         assert!(new_creator_nonce == old_creator_nonce + 1, "Creator nonce not incremented");
 
-        let TestConfig { pool_id_v3, collateral_asset, debt_asset, .. } = config;
+        let TestConfigV3 { pool_id_v3, collateral_asset, debt_asset, .. } = config;
 
         assert!(singleton.extension(pool_id_v3).is_non_zero(), "Pool not created");
 
@@ -60,7 +60,7 @@ mod TestDefaultExtensionEK {
     #[test]
     #[should_panic(expected: "empty-asset-params")]
     fn test_create_pool_empty_asset_params() {
-        let Env { extension_v3, users, .. } = setup_env(
+        let EnvV3 { extension_v3, users, .. } = setup_env_v3(
             Zeroable::zero(),
             Zeroable::zero(),
             Zeroable::zero(),
@@ -100,7 +100,7 @@ mod TestDefaultExtensionEK {
     #[test]
     #[should_panic(expected: "interest-rate-params-mismatch")]
     fn test_create_pool_interest_rate_params_mismatch() {
-        let Env { extension_v3, config, users, .. } = setup_env(
+        let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
             Zeroable::zero(),
             Zeroable::zero(),
             Zeroable::zero(),
@@ -152,7 +152,7 @@ mod TestDefaultExtensionEK {
     #[test]
     #[should_panic(expected: "ekubo-oracle-params-mismatch")]
     fn test_create_pool_ekubo_oracle_params_mismatch() {
-        let Env { extension_v3, config, users, .. } = setup_env(
+        let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
             Zeroable::zero(),
             Zeroable::zero(),
             Zeroable::zero(),
@@ -204,7 +204,7 @@ mod TestDefaultExtensionEK {
     #[test]
     #[should_panic(expected: "v-token-params-mismatch")]
     fn test_create_pool_v_token_params_mismatch() {
-        let Env { extension_v3, config, users, .. } = setup_env(
+        let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
             Zeroable::zero(),
             Zeroable::zero(),
             Zeroable::zero(),
@@ -260,7 +260,7 @@ mod TestDefaultExtensionEK {
     #[test]
     #[should_panic(expected: "caller-not-owner")]
     fn test_add_asset_not_owner() {
-        let Env { extension_v3, config, users, .. } = setup_env(
+        let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
             Zeroable::zero(),
             Zeroable::zero(),
             Zeroable::zero(),
@@ -312,7 +312,7 @@ mod TestDefaultExtensionEK {
     #[test]
     #[should_panic(expected: "invalid-ekubo-oracle-quote-token")]
     fn test_add_asset_invalid_quote_token() {
-        let Env { extension_v3, config, users, .. } = setup_env(
+        let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
             Zeroable::zero(),
             Zeroable::zero(),
             Zeroable::zero(),
@@ -361,7 +361,7 @@ mod TestDefaultExtensionEK {
     #[test]
     #[should_panic(expected: "invalid-ekubo-oracle-quote-token-decimals")]
     fn test_add_asset_invalid_quote_token_decimals() {
-        let Env { extension_v3, config, users, .. } = setup_env(
+        let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
             Zeroable::zero(),
             Zeroable::zero(),
             Zeroable::zero(),
@@ -408,7 +408,7 @@ mod TestDefaultExtensionEK {
     #[test]
     #[should_panic(expected: "invalid-ekubo-oracle-period")]
     fn test_add_asset_invalid_period() {
-        let Env { extension_v3, config, users, .. } = setup_env(
+        let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
             Zeroable::zero(),
             Zeroable::zero(),
             Zeroable::zero(),
@@ -457,7 +457,7 @@ mod TestDefaultExtensionEK {
     #[test]
     #[should_panic(expected: "ekubo-oracle-pool-illiquid")]
     fn test_add_asset_no_liquidity() {
-        let Env { extension_v3, ekubo_core, ekubo_oracle, config, users, .. } = setup_env(
+        let EnvV3 { extension_v3, ekubo_core, ekubo_oracle, config, users, .. } = setup_env_v3(
             Zeroable::zero(),
             Zeroable::zero(),
             Zeroable::zero(),
@@ -514,7 +514,7 @@ mod TestDefaultExtensionEK {
     }
 // #[test]
 // fn test_add_asset() {
-//     let Env { singleton, extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { singleton, extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -570,7 +570,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "caller-not-owner")]
 // fn test_extension_set_asset_parameter_not_owner() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -587,7 +587,7 @@ mod TestDefaultExtensionEK {
 
 // #[test]
 // fn test_extension_set_asset_parameter() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -615,7 +615,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "caller-not-owner")]
 // fn test_set_pool_owner_not_owner() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -632,7 +632,7 @@ mod TestDefaultExtensionEK {
 
 // #[test]
 // fn test_set_pool_owner() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -652,7 +652,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "caller-not-owner")]
 // fn test_set_ltv_config_caller_not_owner() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -675,7 +675,7 @@ mod TestDefaultExtensionEK {
 
 // #[test]
 // fn test_extension_set_ltv_config() {
-//     let Env { singleton, extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { singleton, extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -705,7 +705,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "caller-not-owner")]
 // fn test_extension_set_liquidation_config_caller_not_owner() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -730,7 +730,7 @@ mod TestDefaultExtensionEK {
 
 // #[test]
 // fn test_extension_set_liquidation_config() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -764,7 +764,7 @@ mod TestDefaultExtensionEK {
 
 // #[test]
 // fn test_extension_set_shutdown_config() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -792,7 +792,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "caller-not-owner")]
 // fn test_extension_set_shutdown_config_caller_not_owner() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -813,7 +813,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "invalid-shutdown-config")]
 // fn test_extension_set_shutdown_config_invalid_shutdown_config() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -835,7 +835,7 @@ mod TestDefaultExtensionEK {
 
 // #[test]
 // fn test_extension_set_shutdown_ltv_config() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -870,7 +870,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "caller-not-owner")]
 // fn test_extension_set_shutdown_ltv_config_caller_not_owner() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -896,7 +896,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "invalid-ltv-config")]
 // fn test_extension_set_shutdown_ltv_config_invalid_ltv_config() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -923,7 +923,7 @@ mod TestDefaultExtensionEK {
 
 // #[test]
 // fn test_set_extension() {
-//     let Env { singleton, extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { singleton, extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -945,7 +945,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "caller-not-owner")]
 // fn test_set_extension_v3_not_owner() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -962,7 +962,7 @@ mod TestDefaultExtensionEK {
 
 // #[test]
 // fn test_extension_set_oracle_parameter() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -995,7 +995,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "caller-not-owner")]
 // fn test_extension_set_oracle_parameter_caller_not_owner() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -1013,7 +1013,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "invalid-oracle-parameter")]
 // fn test_extension_set_oracle_parameter_invalid_oracle_parameter() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -1033,7 +1033,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "oracle-config-not-set")]
 // fn test_extension_set_oracle_parameter_oracle_config_not_set() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -1052,7 +1052,7 @@ mod TestDefaultExtensionEK {
 
 // #[test]
 // fn test_extension_set_interest_rate_parameter() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -1146,7 +1146,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "caller-not-owner")]
 // fn test_extension_set_interest_rate_parameter_caller_not_owner() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -1167,7 +1167,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "invalid-interest-rate-parameter")]
 // fn test_extension_set_interest_rate_parameter_invalid_interest_rate_parameter() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -1187,7 +1187,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "interest-rate-config-not-set")]
 // fn test_extension_set_interest_rate_parameter_interest_rate_config_not_set() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -1206,7 +1206,7 @@ mod TestDefaultExtensionEK {
 
 // #[test]
 // fn test_extension_set_fee_config() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -1229,7 +1229,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "caller-not-owner")]
 // fn test_extension_set_fee_config_caller_not_owner() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -1246,7 +1246,7 @@ mod TestDefaultExtensionEK {
 
 // #[test]
 // fn test_extension_set_debt_cap() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),
@@ -1268,7 +1268,7 @@ mod TestDefaultExtensionEK {
 // #[test]
 // #[should_panic(expected: "caller-not-owner")]
 // fn test_extension_set_debt_cap_caller_not_owner() {
-//     let Env { extension_v3, config, users, .. } = setup_env(
+//     let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
 //         Zeroable::zero(),
 //         Zeroable::zero(),
 //         Zeroable::zero(),

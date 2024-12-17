@@ -20,13 +20,7 @@ mod TestSingleton {
     #[test]
     fn test_pool_id() {
         let Env { singleton, extension, config, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         start_prank(CheatTarget::One(singleton.contract_address), extension.contract_address);
@@ -39,15 +33,7 @@ mod TestSingleton {
     #[test]
     #[should_panic(expected: "extension-is-zero")]
     fn test_create_pool_no_extension() {
-        let Env { singleton, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-        );
+        let Env { singleton, .. } = setup_env(Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),);
         singleton.create_pool(array![].span(), array![].span(), Zeroable::zero());
     }
 
@@ -55,13 +41,7 @@ mod TestSingleton {
     #[should_panic(expected: "asset-config-already-exists")]
     fn test_create_pool_duplicate_asset() {
         let Env { singleton, extension, config, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         let collateral_asset_params = AssetParams {
@@ -94,13 +74,7 @@ mod TestSingleton {
     #[should_panic(expected: "invalid-ltv-config")]
     fn test_create_pool_assert_ltv_config_invalid_ltv_config() {
         let Env { singleton, extension, config, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         let collateral_asset = deploy_asset(
@@ -153,13 +127,7 @@ mod TestSingleton {
     #[should_panic(expected: "scale-exceeded")]
     fn test_create_pool_assert_asset_config_scale_exceeded() {
         let Env { singleton, extension, config, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         let asset = deploy_asset_with_decimals(
@@ -198,13 +166,7 @@ mod TestSingleton {
     #[should_panic(expected: "max-utilization-exceeded")]
     fn test_create_pool_assert_asset_config_max_utilization_exceeded() {
         let Env { singleton, extension, config, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         let collateral_asset_params = AssetParams {
@@ -237,13 +199,7 @@ mod TestSingleton {
     #[should_panic(expected: "rate-accumulator-too-low")]
     fn test_create_pool_assert_asset_config_rate_accumulator_too_low() {
         let Env { singleton, extension, config, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         let collateral_asset_params = AssetParams {
@@ -276,13 +232,7 @@ mod TestSingleton {
     #[should_panic(expected: "fee-rate-exceeded")]
     fn test_create_pool_assert_asset_config_fee_rate_exceeded() {
         let Env { singleton, extension, config, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         let collateral_asset_params = AssetParams {
@@ -315,13 +265,7 @@ mod TestSingleton {
     #[should_panic(expected: "caller-not-extension")]
     fn test_set_asset_config_not_extension() {
         let Env { singleton, extension, config, users, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         create_pool(extension, config, users.creator, Option::None);
@@ -346,13 +290,7 @@ mod TestSingleton {
     #[test]
     fn test_set_asset_config() {
         let Env { singleton, extension, config, users, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         create_pool(extension, config, users.creator, Option::None);
@@ -385,13 +323,7 @@ mod TestSingleton {
     #[should_panic(expected: "caller-not-extension")]
     fn test_set_asset_parameter_not_extension() {
         let Env { singleton, extension, config, users, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         create_pool(extension, config, users.creator, Option::None);
@@ -402,13 +334,7 @@ mod TestSingleton {
     #[test]
     fn test_set_asset_parameter() {
         let Env { singleton, extension, config, users, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         create_pool(extension, config, users.creator, Option::None);
@@ -511,13 +437,7 @@ mod TestSingleton {
     #[test]
     fn test_set_ltv_config() {
         let Env { singleton, extension, config, users, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         create_pool(extension, config, users.creator, Option::None);
@@ -537,13 +457,7 @@ mod TestSingleton {
     #[should_panic(expected: "caller-not-extension")]
     fn test_set_extension_not_extension() {
         let Env { singleton, extension, config, users, .. } = setup_env(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
+            Zeroable::zero(), Zeroable::zero(), Zeroable::zero(), Zeroable::zero(),
         );
 
         create_pool(extension, config, users.creator, Option::None);

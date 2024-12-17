@@ -2,7 +2,7 @@ use snforge_std::{
     declare, ContractClass, ContractClassTrait, start_prank, stop_prank, start_warp, stop_warp, CheatTarget,
     get_class_hash
 };
-use starknet::{ContractAddress, contract_address_const, get_block_timestamp};
+use starknet::{ClassHash, ContractAddress, contract_address_const, get_block_timestamp};
 use vesu::{
     units::{SCALE, SCALE_128, PERCENT, DAY_IN_SECONDS}, singleton::{ISingletonDispatcher, ISingletonDispatcherTrait},
     data_model::{Amount, AmountDenomination, AmountType, ModifyPositionParams, AssetParams, LTVParams},
@@ -55,10 +55,18 @@ struct Env {
     singleton: ISingletonDispatcher,
     extension: IDefaultExtensionDispatcher,
     extension_v2: IDefaultExtensionCLDispatcher,
+    config: TestConfig,
+    users: Users,
+    v_token_class_hash: ClassHash
+}
+
+#[derive(Copy, Drop, Serde)]
+struct EnvV3 {
+    singleton: ISingletonDispatcher,
     extension_v3: IDefaultExtensionEKDispatcher,
     ekubo_core: IMockEkuboCoreDispatcher,
     ekubo_oracle: IMockEkuboOracleDispatcher,
-    config: TestConfig,
+    config: TestConfigV3,
     users: Users
 }
 
@@ -66,6 +74,16 @@ struct Env {
 struct TestConfig {
     pool_id: felt252,
     pool_id_v2: felt252,
+    collateral_asset: IERC20Dispatcher,
+    debt_asset: IERC20Dispatcher,
+    third_asset: IERC20Dispatcher,
+    collateral_scale: u256,
+    debt_scale: u256,
+    third_scale: u256
+}
+
+#[derive(Copy, Drop, Serde)]
+struct TestConfigV3 {
     pool_id_v3: felt252,
     collateral_asset: IERC20Dispatcher,
     debt_asset: IERC20Dispatcher,
@@ -85,9 +103,7 @@ fn deploy_with_args(name: ByteArray, constructor_args: Array<felt252>) -> Contra
     declare(name).deploy(@constructor_args).unwrap()
 }
 
-fn deploy_assets(
-    recipient: ContractAddress
-) -> (IERC20Dispatcher, IERC20Dispatcher, IERC20Dispatcher, IERC20Dispatcher) {
+fn deploy_assets(recipient: ContractAddress) -> (IERC20Dispatcher, IERC20Dispatcher, IERC20Dispatcher) {
     let class = declare("MockAsset");
 
     // mint 100 collateral and debt assets
@@ -109,12 +125,7 @@ fn deploy_assets(
     let calldata = array!['Third', 'THIRD', decimals.into(), supply.low.into(), supply.high.into(), recipient.into()];
     let third_asset = IERC20Dispatcher { contract_address: class.deploy(@calldata).unwrap() };
 
-    let decimals = 8;
-    let supply = 100 * pow_10(decimals);
-    let calldata = array!['Quote', 'QUOTE', decimals.into(), supply.low.into(), supply.high.into(), recipient.into()];
-    let quote_asset = IERC20Dispatcher { contract_address: class.deploy(@calldata).unwrap() };
-
-    (collateral_asset, debt_asset, third_asset, quote_asset)
+    (collateral_asset, debt_asset, third_asset)
 }
 
 fn deploy_asset(class: ContractClass, recipient: ContractAddress) -> IERC20Dispatcher {
@@ -133,10 +144,7 @@ fn setup_env(
     oracle_address: ContractAddress,
     collateral_address: ContractAddress,
     debt_address: ContractAddress,
-    third_address: ContractAddress,
-    quote_address: ContractAddress,
-    ekubo_core_address: ContractAddress,
-    ekubo_oracle_address: ContractAddress
+    third_address: ContractAddress
 ) -> Env {
     let singleton = ISingletonDispatcher { contract_address: deploy_contract("Singleton") };
 
@@ -157,22 +165,6 @@ fn setup_env(
         }
     };
 
-    let mock_ekubo_core = IMockEkuboCoreDispatcher {
-        contract_address: if ekubo_core_address.is_non_zero() {
-            ekubo_core_address
-        } else {
-            deploy_contract("MockEkuboCore")
-        }
-    };
-
-    let mock_ekubo_oracle = IMockEkuboOracleDispatcher {
-        contract_address: if ekubo_oracle_address.is_non_zero() {
-            ekubo_oracle_address
-        } else {
-            deploy_contract("MockEkuboOracle")
-        }
-    };
-
     let v_token_class_hash = declare("VToken").class_hash;
 
     let args = array![
@@ -183,24 +175,14 @@ fn setup_env(
     let args = array![singleton.contract_address.into(), v_token_class_hash.into()];
     let extension_v2 = IDefaultExtensionCLDispatcher { contract_address: deploy_with_args("DefaultExtensionCL", args) };
 
-    let args = array![
-        singleton.contract_address.into(),
-        mock_ekubo_core.contract_address.into(),
-        mock_ekubo_oracle.contract_address.into(),
-        v_token_class_hash.into()
-    ];
-    let extension_v3 = IDefaultExtensionEKDispatcher { contract_address: deploy_with_args("DefaultExtensionEK", args) };
-
     // deploy collateral and borrow assets
-    let (collateral_asset, debt_asset, third_asset, quote_asset) = if collateral_address.is_non_zero()
+    let (collateral_asset, debt_asset, third_asset) = if collateral_address.is_non_zero()
         && debt_address.is_non_zero()
-        && third_address.is_non_zero()
-        && quote_address.is_non_zero() {
+        && third_address.is_non_zero() {
         (
             IERC20Dispatcher { contract_address: collateral_address },
             IERC20Dispatcher { contract_address: debt_address },
-            IERC20Dispatcher { contract_address: third_address },
-            IERC20Dispatcher { contract_address: quote_address }
+            IERC20Dispatcher { contract_address: third_address }
         )
     } else {
         deploy_assets(users.lender)
@@ -234,14 +216,66 @@ fn setup_env(
         mock_pragma_oracle.set_price(THIRD_PRAGMA_KEY, SCALE_128);
     }
 
+    // create pool config
+    let pool_id = singleton.calculate_pool_id(extension.contract_address, 1);
+    let pool_id_v2 = singleton.calculate_pool_id(extension_v2.contract_address, 1);
+    let collateral_scale = pow_10(collateral_asset.decimals().into());
+    let debt_scale = pow_10(debt_asset.decimals().into());
+    let third_scale = pow_10(third_asset.decimals().into());
+    let config = TestConfig {
+        pool_id, pool_id_v2, collateral_asset, debt_asset, collateral_scale, debt_scale, third_asset, third_scale
+    };
+
+    Env { singleton, extension, extension_v2, config, users, v_token_class_hash }
+}
+
+
+fn setup_env_v3(
+    oracle_address: ContractAddress,
+    collateral_address: ContractAddress,
+    debt_address: ContractAddress,
+    third_address: ContractAddress,
+    quote_address: ContractAddress,
+    ekubo_core_address: ContractAddress,
+    ekubo_oracle_address: ContractAddress
+) -> EnvV3 {
+    let env = setup_env(oracle_address, collateral_address, debt_address, third_address);
+
+    let mock_ekubo_core = IMockEkuboCoreDispatcher {
+        contract_address: if ekubo_core_address.is_non_zero() {
+            ekubo_core_address
+        } else {
+            deploy_contract("MockEkuboCore")
+        }
+    };
+
+    let mock_ekubo_oracle = IMockEkuboOracleDispatcher {
+        contract_address: if ekubo_oracle_address.is_non_zero() {
+            ekubo_oracle_address
+        } else {
+            deploy_contract("MockEkuboOracle")
+        }
+    };
+
+    let args = array![
+        env.singleton.contract_address.into(),
+        mock_ekubo_core.contract_address.into(),
+        mock_ekubo_oracle.contract_address.into(),
+        env.v_token_class_hash.into()
+    ];
+    let extension_v3 = IDefaultExtensionEKDispatcher { contract_address: deploy_with_args("DefaultExtensionEK", args) };
+
+    let erc20_class_hash = get_class_hash(env.config.collateral_asset.contract_address);
+    let quote_asset = deploy_asset(ContractClass { class_hash: erc20_class_hash }, env.users.lender.into());
+
     let debt_asset_pool_key = construct_oracle_pool_key(
-        debt_asset.contract_address, quote_asset.contract_address, mock_ekubo_oracle.contract_address
+        env.config.debt_asset.contract_address, quote_asset.contract_address, mock_ekubo_oracle.contract_address
     );
     let collateral_asset_pool_key = construct_oracle_pool_key(
-        collateral_asset.contract_address, quote_asset.contract_address, mock_ekubo_oracle.contract_address
+        env.config.collateral_asset.contract_address, quote_asset.contract_address, mock_ekubo_oracle.contract_address
     );
     let third_asset_pool_key = construct_oracle_pool_key(
-        third_asset.contract_address, quote_asset.contract_address, mock_ekubo_oracle.contract_address
+        env.config.third_asset.contract_address, quote_asset.contract_address, mock_ekubo_oracle.contract_address
     );
 
     mock_ekubo_core.set_pool_liquidity(debt_asset_pool_key, integer::BoundedInt::max());
@@ -249,43 +283,38 @@ fn setup_env(
     mock_ekubo_core.set_pool_liquidity(third_asset_pool_key, integer::BoundedInt::max());
 
     if ekubo_oracle_address.is_zero() {
-        mock_ekubo_oracle.set_price_x128(debt_asset.contract_address, quote_asset.contract_address, SCALE_128.into());
         mock_ekubo_oracle
-            .set_price_x128(collateral_asset.contract_address, quote_asset.contract_address, SCALE_128.into());
-        mock_ekubo_oracle.set_price_x128(third_asset.contract_address, quote_asset.contract_address, SCALE_128.into());
+            .set_price_x128(env.config.debt_asset.contract_address, quote_asset.contract_address, SCALE_128.into());
+        mock_ekubo_oracle
+            .set_price_x128(
+                env.config.collateral_asset.contract_address, quote_asset.contract_address, SCALE_128.into()
+            );
+        mock_ekubo_oracle
+            .set_price_x128(env.config.third_asset.contract_address, quote_asset.contract_address, SCALE_128.into());
     }
 
     // create pool config
-    let pool_id = singleton.calculate_pool_id(extension.contract_address, 1);
-    let pool_id_v2 = singleton.calculate_pool_id(extension_v2.contract_address, 1);
-    let pool_id_v3 = singleton.calculate_pool_id(extension_v3.contract_address, 1);
-    let collateral_scale = pow_10(collateral_asset.decimals().into());
-    let debt_scale = pow_10(debt_asset.decimals().into());
-    let third_scale = pow_10(third_asset.decimals().into());
+    let pool_id_v3 = env.singleton.calculate_pool_id(extension_v3.contract_address, 1);
     let quote_scale = pow_10(quote_asset.decimals().into());
-    let config = TestConfig {
-        pool_id,
-        pool_id_v2,
+    let config = TestConfigV3 {
         pool_id_v3,
-        collateral_asset,
-        debt_asset,
+        collateral_asset: env.config.collateral_asset,
+        debt_asset: env.config.debt_asset,
+        third_asset: env.config.third_asset,
         quote_asset,
-        collateral_scale,
-        debt_scale,
-        third_asset,
-        third_scale,
+        collateral_scale: env.config.collateral_scale,
+        debt_scale: env.config.debt_scale,
+        third_scale: env.config.third_scale,
         quote_scale
     };
 
-    Env {
-        singleton,
-        extension,
-        extension_v2,
+    EnvV3 {
+        singleton: env.singleton,
         extension_v3,
         ekubo_core: mock_ekubo_core,
         ekubo_oracle: mock_ekubo_oracle,
         config,
-        users
+        users: env.users
     }
 }
 
@@ -599,7 +628,7 @@ fn create_pool_v2(
 
 fn create_pool_v3(
     extension: IDefaultExtensionEKDispatcher,
-    config: TestConfig,
+    config: TestConfigV3,
     creator: ContractAddress,
     interest_rate_config: Option<InterestRateConfig>,
 ) {
@@ -764,13 +793,7 @@ fn setup_pool(
     interest_rate_config: Option<InterestRateConfig>,
 ) -> (ISingletonDispatcher, IDefaultExtensionDispatcher, TestConfig, Users, LendingTerms) {
     let Env { singleton, extension, config, users, .. } = setup_env(
-        oracle_address,
-        collateral_address,
-        debt_address,
-        third_address,
-        quote_address,
-        ekubo_core_address,
-        ekubo_oracle_address,
+        oracle_address, collateral_address, debt_address, third_address
     );
 
     create_pool(extension, config, users.creator, interest_rate_config);
