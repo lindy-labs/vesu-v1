@@ -2,8 +2,7 @@ use starknet::ContractAddress;
 
 #[derive(PartialEq, Copy, Drop, Serde, starknet::Store)]
 struct EkuboOracleConfig {
-    quote_token: ContractAddress,
-    quote_token_decimals: u8,
+    decimals: u8,
     period: u64 // [seconds]
 }
 
@@ -29,6 +28,8 @@ mod ekubo_oracle_component {
         oracle_address: ContractAddress,
         // (pool_id, asset) -> oracle configuration
         ekubo_oracle_configs: LegacyMap::<(felt252, ContractAddress), EkuboOracleConfig>,
+        quote_asset: ContractAddress,
+        quote_asset_decimals: u8,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -85,6 +86,25 @@ mod ekubo_oracle_component {
             self.oracle_address.read()
         }
 
+        /// Sets the address of the quote asset
+        /// # Arguments
+        /// * `quote_asset` - address of the asset to be used for quoting prices
+        fn set_quote_asset(ref self: ComponentState<TContractState>, quote_asset: ContractAddress) {
+            assert!(self.quote_asset.read().is_zero(), "quote-asset-already-initialized");
+            assert!(quote_asset.is_non_zero(), "invalid-ekubo-oracle-quote-token");
+            self.quote_asset.write(quote_asset);
+
+            let quote_asset_decimals: u8 = ERC20ABIDispatcher { contract_address: quote_asset }.decimals();
+            self.quote_asset_decimals.write(quote_asset_decimals);
+        }
+
+        /// Returns the address of the asset to be used for quoting prices
+        /// # Returns
+        /// * `quote_asset` - address of the quote asset
+        fn quote_asset(self: @ComponentState<TContractState>) -> ContractAddress {
+            self.quote_asset.read()
+        }
+
         /// Returns the current price for an asset in a given pool and the validity status of the price.
         /// Status is always true, since it's a single onchain source.
         /// # Arguments
@@ -94,19 +114,17 @@ mod ekubo_oracle_component {
         /// * `price` - current price of the asset
         /// * `valid` - always `true`
         fn price(self: @ComponentState<TContractState>, pool_id: felt252, asset: ContractAddress) -> (u256, bool) {
-            let EkuboOracleConfig { quote_token, quote_token_decimals, period } = self
-                .ekubo_oracle_configs
-                .read((pool_id, asset));
+            let EkuboOracleConfig { decimals, period } = self.ekubo_oracle_configs.read((pool_id, asset));
             let oracle = IEkuboOracleDispatcher { contract_address: self.oracle_address.read() };
-            let mut price = oracle.get_price_x128_over_last(asset, quote_token, period);
+            let mut price = oracle.get_price_x128_over_last(asset, self.quote_asset.read(), period);
 
-            let asset_decimals: u8 = ERC20ABIDispatcher { contract_address: asset }.decimals();
             // Adjust the scale based on the difference in precision between the base asset 
             // and the quote asset
-            let adjusted_scale = if quote_token_decimals <= asset_decimals {
-                SCALE * pow_10((asset_decimals - quote_token_decimals).into())
+            let quote_asset_decimals: u8 = self.quote_asset_decimals.read();
+            let adjusted_scale = if quote_asset_decimals <= decimals {
+                SCALE * pow_10((decimals - quote_asset_decimals).into())
             } else {
-                SCALE / pow_10((quote_token_decimals - asset_decimals).into())
+                SCALE / pow_10((quote_asset_decimals - decimals).into())
             };
 
             let price = price * adjusted_scale / TWO_128;
@@ -125,17 +143,11 @@ mod ekubo_oracle_component {
             asset: ContractAddress,
             ekubo_oracle_config: EkuboOracleConfig
         ) {
-            assert!(ekubo_oracle_config.quote_token.is_non_zero(), "invalid-ekubo-oracle-quote-token");
-            assert!(
-                ekubo_oracle_config.quote_token_decimals.is_non_zero()
-                    && ekubo_oracle_config.quote_token_decimals <= 18,
-                "invalid-ekubo-oracle-quote-token-decimals"
-            );
             assert!(ekubo_oracle_config.period.is_non_zero(), "invalid-ekubo-oracle-period");
 
             // check if the pool is liquid
             let pool_key: PoolKey = construct_oracle_pool_key(
-                asset, ekubo_oracle_config.quote_token, self.oracle_address.read()
+                asset, self.quote_asset.read(), self.oracle_address.read()
             );
 
             let liquidity = IEkuboCoreDispatcher { contract_address: self.core.read() }.get_pool_liquidity(pool_key);
@@ -159,7 +171,7 @@ mod ekubo_oracle_component {
             value: u64
         ) {
             let mut ekubo_oracle_config: EkuboOracleConfig = self.ekubo_oracle_configs.read((pool_id, asset));
-            assert!(ekubo_oracle_config.quote_token != Zeroable::zero(), "ekubo-oracle-config-not-set");
+            assert!(ekubo_oracle_config.period.is_non_zero(), "ekubo-oracle-config-not-set");
 
             if parameter == 'period' {
                 assert!(value != 0, "invalid-ekubo-oracle-period-value");

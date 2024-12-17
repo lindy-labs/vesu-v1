@@ -659,21 +659,7 @@ fn create_pool_v3(
         fee_rate: 1 * PERCENT
     };
 
-    let collateral_asset_oracle_params = EkuboOracleParams {
-        quote_token: config.quote_asset.contract_address,
-        quote_token_decimals: config.quote_asset.decimals(),
-        period: EKUBO_TWAP_PERIOD
-    };
-    let debt_asset_oracle_params = EkuboOracleParams {
-        quote_token: config.quote_asset.contract_address,
-        quote_token_decimals: config.quote_asset.decimals(),
-        period: EKUBO_TWAP_PERIOD
-    };
-    let third_asset_oracle_params = EkuboOracleParams {
-        quote_token: config.quote_asset.contract_address,
-        quote_token_decimals: config.quote_asset.decimals(),
-        period: EKUBO_TWAP_PERIOD
-    };
+    let oracle_params = EkuboOracleParams { period: EKUBO_TWAP_PERIOD };
 
     let collateral_asset_v_token_params = VTokenParams { v_token_name: 'Vesu Collateral', v_token_symbol: 'vCOLL' };
     let debt_asset_v_token_params = VTokenParams { v_token_name: 'Vesu Debt', v_token_symbol: 'vDEBT' };
@@ -731,10 +717,7 @@ fn create_pool_v3(
     ]
         .span();
     let interest_rate_configs = array![interest_rate_config, interest_rate_config, interest_rate_config].span();
-    let chainlink_oracle_params = array![
-        collateral_asset_oracle_params, debt_asset_oracle_params, third_asset_oracle_params
-    ]
-        .span();
+    let ekubo_oracle_params = array![oracle_params, oracle_params, oracle_params].span();
     let liquidation_params = array![
         liquidation_params_0, liquidation_params_1, liquidation_params_2, liquidation_params_3
     ]
@@ -750,7 +733,7 @@ fn create_pool_v3(
             v_token_params,
             max_position_ltv_params,
             interest_rate_configs,
-            chainlink_oracle_params,
+            ekubo_oracle_params,
             liquidation_params,
             shutdown_params,
             FeeParams { fee_recipient: creator },

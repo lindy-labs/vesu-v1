@@ -13,8 +13,6 @@ use vesu::{
 
 #[derive(PartialEq, Copy, Drop, Serde)]
 struct EkuboOracleParams {
-    quote_token: ContractAddress,
-    quote_token_decimals: u8,
     period: u64 // [seconds]
 }
 
@@ -147,6 +145,7 @@ mod DefaultExtensionEK {
                 tokenization::{tokenization_component, tokenization_component::TokenizationTrait}
             }
         },
+        vendor::erc20::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait},
     };
 
     component!(path: position_hooks_component, storage: position_hooks, event: PositionHooksEvents);
@@ -208,11 +207,13 @@ mod DefaultExtensionEK {
         singleton: ContractAddress,
         core: ContractAddress,
         oracle_address: ContractAddress,
+        quote_asset: ContractAddress,
         v_token_class_hash: felt252
     ) {
         self.singleton.write(singleton);
         self.ekubo_oracle.set_core(core);
         self.ekubo_oracle.set_oracle(oracle_address);
+        self.ekubo_oracle.set_quote_asset(quote_asset);
         self.tokenization.set_v_token_class_hash(v_token_class_hash);
     }
 
@@ -486,14 +487,16 @@ mod DefaultExtensionEK {
             while !asset_params_copy
                 .is_empty() {
                     let asset = *asset_params_copy.pop_front().unwrap().asset;
+                    assert!(asset != self.ekubo_oracle.quote_asset(), "add-quote-asset-disallowed");
+                    let asset_decimals = ERC20ABIDispatcher { contract_address: asset }.decimals();
 
                     // set the oracle config
                     let params = *ekubo_oracle_params.pop_front().unwrap();
-                    let EkuboOracleParams { quote_token, quote_token_decimals, period } = params;
+                    let EkuboOracleParams { period } = params;
                     self
                         .ekubo_oracle
                         .set_ekubo_oracle_config(
-                            pool_id, asset, EkuboOracleConfig { quote_token, quote_token_decimals, period }
+                            pool_id, asset, EkuboOracleConfig { decimals: asset_decimals, period }
                         );
 
                     // set the interest rate model configuration
@@ -569,18 +572,14 @@ mod DefaultExtensionEK {
         ) {
             assert!(get_caller_address() == self.owner.read(pool_id), "caller-not-owner");
             let asset = asset_params.asset;
+            assert!(asset != self.ekubo_oracle.quote_asset(), "add-quote-asset-disallowed");
+            let asset_decimals = ERC20ABIDispatcher { contract_address: asset }.decimals();
 
             // set the oracle config
             self
                 .ekubo_oracle
                 .set_ekubo_oracle_config(
-                    pool_id,
-                    asset,
-                    EkuboOracleConfig {
-                        quote_token: ekubo_oracle_params.quote_token,
-                        quote_token_decimals: ekubo_oracle_params.quote_token_decimals,
-                        period: ekubo_oracle_params.period
-                    }
+                    pool_id, asset, EkuboOracleConfig { decimals: asset_decimals, period: ekubo_oracle_params.period }
                 );
 
             // set the debt cap
