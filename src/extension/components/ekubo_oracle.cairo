@@ -18,7 +18,7 @@ mod ekubo_oracle_component {
             construct_oracle_pool_key, IEkuboOracleDispatcher, IEkuboOracleDispatcherTrait, IEkuboCoreDispatcher,
             IEkuboCoreDispatcherTrait, PoolKey,
         },
-        erc20::{IERC20Dispatcher, IERC20DispatcherTrait}
+        erc20::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
     };
 
     const TWO_128: u256 = 0x100000000000000000000000000000000; // 2^128
@@ -98,11 +98,18 @@ mod ekubo_oracle_component {
                 .ekubo_oracle_configs
                 .read((pool_id, asset));
             let oracle = IEkuboOracleDispatcher { contract_address: self.oracle_address.read() };
-            let price = oracle.get_price_x128_over_last(asset, quote_token, period);
+            let mut price = oracle.get_price_x128_over_last(asset, quote_token, period);
 
-            let denominator = pow_10(quote_token_decimals.into());
-            let decimal_offset = SCALE / denominator;
-            let price = price * SCALE * decimal_offset / TWO_128;
+            let asset_decimals: u8 = ERC20ABIDispatcher { contract_address: asset }.decimals();
+            // Adjust the scale based on the difference in precision between the base asset 
+            // and the quote asset
+            let adjusted_scale = if quote_token_decimals <= asset_decimals {
+                SCALE * pow_10((asset_decimals - quote_token_decimals).into())
+            } else {
+                SCALE / pow_10((quote_token_decimals - asset_decimals).into())
+            };
+
+            let price = price * adjusted_scale / TWO_128;
 
             (price, true)
         }
