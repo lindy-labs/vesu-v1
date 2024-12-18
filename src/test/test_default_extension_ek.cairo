@@ -224,17 +224,67 @@ mod TestDefaultExtensionEK {
             fee_rate: 0
         };
 
-        let collateral_asset_oracle_params = EkuboOracleParams {
-            quote_token: config.quote_asset.contract_address,
-            quote_token_decimals: config.quote_asset.decimals(),
-            period: EKUBO_TWAP_PERIOD
-        };
+        let collateral_asset_oracle_params = EkuboOracleParams { period: EKUBO_TWAP_PERIOD };
 
         let asset_params = array![collateral_asset_params].span();
         let v_token_params = array![].span();
         let max_position_ltv_params = array![].span();
         let interest_rate_configs = array![test_interest_rate_config()].span();
         let oracle_params = array![collateral_asset_oracle_params].span();
+        let liquidation_params = array![].span();
+        let shutdown_ltv_params = array![].span();
+        let shutdown_params = ShutdownParams {
+            recovery_period: DAY_IN_SECONDS, subscription_period: DAY_IN_SECONDS, ltv_params: shutdown_ltv_params
+        };
+
+        start_prank(CheatTarget::One(extension_v3.contract_address), users.creator);
+        extension_v3
+            .create_pool(
+                asset_params,
+                v_token_params,
+                max_position_ltv_params,
+                interest_rate_configs,
+                oracle_params,
+                liquidation_params,
+                shutdown_params,
+                FeeParams { fee_recipient: users.creator },
+                users.creator
+            );
+        stop_prank(CheatTarget::One(extension_v3.contract_address));
+    }
+
+    #[test]
+    #[should_panic(expected: "add-quote-asset-disallowed")]
+    fn test_create_pool_quote_asset_disallowed() {
+        let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+            Zeroable::zero(),
+        );
+
+        let quote_asset_params = AssetParams {
+            asset: config.quote_asset.contract_address,
+            floor: SCALE / 10_000,
+            initial_rate_accumulator: SCALE,
+            initial_full_utilization_rate: (1582470460 + 32150205761) / 2,
+            max_utilization: SCALE,
+            is_legacy: true,
+            fee_rate: 0
+        };
+
+        let quote_asset_oracle_params = EkuboOracleParams { period: EKUBO_TWAP_PERIOD };
+
+        let quote_asset_v_token_params = VTokenParams { v_token_name: 'Vesu Quote', v_token_symbol: 'vQUOTE' };
+
+        let asset_params = array![quote_asset_params].span();
+        let v_token_params = array![quote_asset_v_token_params].span();
+        let max_position_ltv_params = array![].span();
+        let interest_rate_configs = array![test_interest_rate_config()].span();
+        let oracle_params = array![quote_asset_oracle_params].span();
         let liquidation_params = array![].span();
         let shutdown_ltv_params = array![].span();
         let shutdown_params = ShutdownParams {
@@ -299,19 +349,15 @@ mod TestDefaultExtensionEK {
             target_rate_percent: 20 * PERCENT,
         };
 
-        let ekubo_oracle_params = EkuboOracleParams {
-            quote_token: config.quote_asset.contract_address,
-            quote_token_decimals: config.quote_asset.decimals(),
-            period: EKUBO_TWAP_PERIOD
-        };
+        let ekubo_oracle_params = EkuboOracleParams { period: EKUBO_TWAP_PERIOD };
 
         extension_v3
             .add_asset(config.pool_id_v3, asset_params, v_token_params, interest_rate_config, ekubo_oracle_params, 0);
     }
 
     #[test]
-    #[should_panic(expected: "invalid-ekubo-oracle-quote-token")]
-    fn test_add_asset_invalid_quote_token() {
+    #[should_panic(expected: "add-quote-asset-disallowed")]
+    fn test_add_asset_quote_asset_disallowed() {
         let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
             Zeroable::zero(),
             Zeroable::zero(),
@@ -325,7 +371,7 @@ mod TestDefaultExtensionEK {
         create_pool_v3(extension_v3, config, users.creator, Option::None);
 
         let asset_params = AssetParams {
-            asset: config.collateral_asset.contract_address,
+            asset: config.quote_asset.contract_address,
             floor: SCALE / 10_000,
             initial_rate_accumulator: SCALE,
             initial_full_utilization_rate: (1582470460 + 32150205761) / 2,
@@ -347,58 +393,7 @@ mod TestDefaultExtensionEK {
             target_rate_percent: 20 * PERCENT,
         };
 
-        let ekubo_oracle_params = EkuboOracleParams {
-            quote_token: Zeroable::zero(),
-            quote_token_decimals: config.quote_asset.decimals(),
-            period: EKUBO_TWAP_PERIOD
-        };
-        start_prank(CheatTarget::One(extension_v3.contract_address), users.creator);
-        extension_v3
-            .add_asset(config.pool_id_v3, asset_params, v_token_params, interest_rate_config, ekubo_oracle_params, 0);
-        stop_prank(CheatTarget::One(extension_v3.contract_address));
-    }
-
-    #[test]
-    #[should_panic(expected: "invalid-ekubo-oracle-quote-token-decimals")]
-    fn test_add_asset_invalid_quote_token_decimals() {
-        let EnvV3 { extension_v3, config, users, .. } = setup_env_v3(
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-            Zeroable::zero(),
-        );
-
-        create_pool_v3(extension_v3, config, users.creator, Option::None);
-
-        let asset_params = AssetParams {
-            asset: config.collateral_asset.contract_address,
-            floor: SCALE / 10_000,
-            initial_rate_accumulator: SCALE,
-            initial_full_utilization_rate: (1582470460 + 32150205761) / 2,
-            max_utilization: SCALE,
-            is_legacy: false,
-            fee_rate: 0
-        };
-
-        let v_token_params = VTokenParams { v_token_name: 'Vesu Collateral', v_token_symbol: 'vCOLL' };
-
-        let interest_rate_config = InterestRateConfig {
-            min_target_utilization: 75_000,
-            max_target_utilization: 85_000,
-            target_utilization: 87_500,
-            min_full_utilization_rate: 1582470460,
-            max_full_utilization_rate: 32150205761,
-            zero_utilization_rate: 158247046,
-            rate_half_life: 172_800,
-            target_rate_percent: 20 * PERCENT,
-        };
-
-        let ekubo_oracle_params = EkuboOracleParams {
-            quote_token: config.quote_asset.contract_address, quote_token_decimals: 19, period: EKUBO_TWAP_PERIOD
-        };
+        let ekubo_oracle_params = EkuboOracleParams { period: EKUBO_TWAP_PERIOD };
         start_prank(CheatTarget::One(extension_v3.contract_address), users.creator);
         extension_v3
             .add_asset(config.pool_id_v3, asset_params, v_token_params, interest_rate_config, ekubo_oracle_params, 0);
@@ -443,11 +438,7 @@ mod TestDefaultExtensionEK {
             target_rate_percent: 20 * PERCENT,
         };
 
-        let ekubo_oracle_params = EkuboOracleParams {
-            quote_token: config.quote_asset.contract_address,
-            quote_token_decimals: config.quote_asset.decimals(),
-            period: Zeroable::zero()
-        };
+        let ekubo_oracle_params = EkuboOracleParams { period: Zeroable::zero() };
         start_prank(CheatTarget::One(extension_v3.contract_address), users.creator);
         extension_v3
             .add_asset(config.pool_id_v3, asset_params, v_token_params, interest_rate_config, ekubo_oracle_params, 0);
@@ -496,11 +487,7 @@ mod TestDefaultExtensionEK {
             target_rate_percent: 20 * PERCENT,
         };
 
-        let ekubo_oracle_params = EkuboOracleParams {
-            quote_token: config.quote_asset.contract_address,
-            quote_token_decimals: config.quote_asset.decimals(),
-            period: EKUBO_TWAP_PERIOD
-        };
+        let ekubo_oracle_params = EkuboOracleParams { period: EKUBO_TWAP_PERIOD };
 
         let asset_pool_key = construct_oracle_pool_key(
             asset.contract_address, config.quote_asset.contract_address, ekubo_oracle.contract_address
@@ -554,11 +541,7 @@ mod TestDefaultExtensionEK {
             target_rate_percent: 20 * PERCENT,
         };
 
-        let ekubo_oracle_params = EkuboOracleParams {
-            quote_token: config.quote_asset.contract_address,
-            quote_token_decimals: config.quote_asset.decimals(),
-            period: EKUBO_TWAP_PERIOD
-        };
+        let ekubo_oracle_params = EkuboOracleParams { period: EKUBO_TWAP_PERIOD };
 
         let asset_pool_key = construct_oracle_pool_key(
             asset.contract_address, config.quote_asset.contract_address, ekubo_oracle.contract_address

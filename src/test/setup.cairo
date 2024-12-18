@@ -258,16 +258,17 @@ fn setup_env_v3(
         }
     };
 
+    let erc20_class_hash = get_class_hash(collateral_asset.contract_address);
+    let quote_asset = deploy_asset(ContractClass { class_hash: erc20_class_hash }, env.users.lender.into());
+
     let args = array![
         env.singleton.contract_address.into(),
         mock_ekubo_core.contract_address.into(),
         mock_ekubo_oracle.contract_address.into(),
+        quote_asset.contract_address.into(),
         env.v_token_class_hash.into()
     ];
     let extension_v3 = IDefaultExtensionEKDispatcher { contract_address: deploy_with_args("DefaultExtensionEK", args) };
-
-    let erc20_class_hash = get_class_hash(collateral_asset.contract_address);
-    let quote_asset = deploy_asset(ContractClass { class_hash: erc20_class_hash }, env.users.lender.into());
 
     let debt_asset_pool_key = construct_oracle_pool_key(
         debt_asset.contract_address, quote_asset.contract_address, mock_ekubo_oracle.contract_address
