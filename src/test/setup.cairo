@@ -259,7 +259,15 @@ fn setup_env_v3(
     };
 
     let erc20_class_hash = get_class_hash(collateral_asset.contract_address);
-    let quote_asset = deploy_asset(ContractClass { class_hash: erc20_class_hash }, env.users.lender.into());
+
+    let quote_asset = if quote_address.is_non_zero() {
+        IERC20Dispatcher { contract_address: quote_address }
+    } else {
+        let quote_asset_decimals = 6;
+        deploy_asset_with_decimals(
+            ContractClass { class_hash: erc20_class_hash }, env.users.lender.into(), quote_asset_decimals
+        )
+    };
 
     let args = array![
         env.singleton.contract_address.into(),

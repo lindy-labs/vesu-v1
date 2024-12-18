@@ -48,6 +48,7 @@ mod test {
     mod test_default_extension_cl;
     mod test_default_extension_ek;
     mod test_default_extension_po;
+    mod test_ekubo_oracle;
     mod test_flash_loan;
     mod test_forking;
     mod test_interest_rate_model;
