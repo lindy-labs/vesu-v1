@@ -17,7 +17,7 @@ mod ekubo_oracle_component {
             construct_oracle_pool_key, IEkuboOracleDispatcher, IEkuboOracleDispatcherTrait, IEkuboCoreDispatcher,
             IEkuboCoreDispatcherTrait, PoolKey,
         },
-        erc20::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
+        erc20::{IERC20MetadataDispatcher, IERC20MetadataDispatcherTrait}
     };
 
     const TWO_128: u256 = 0x100000000000000000000000000000000; // 2^128
@@ -94,7 +94,7 @@ mod ekubo_oracle_component {
             assert!(quote_asset.is_non_zero(), "invalid-ekubo-oracle-quote-token");
             self.quote_asset.write(quote_asset);
 
-            let quote_asset_decimals: u8 = ERC20ABIDispatcher { contract_address: quote_asset }.decimals();
+            let quote_asset_decimals: u8 = IERC20MetadataDispatcher { contract_address: quote_asset }.decimals();
             self.quote_asset_decimals.write(quote_asset_decimals);
         }
 
@@ -116,7 +116,7 @@ mod ekubo_oracle_component {
         fn price(self: @ComponentState<TContractState>, pool_id: felt252, asset: ContractAddress) -> (u256, bool) {
             let EkuboOracleConfig { decimals, period } = self.ekubo_oracle_configs.read((pool_id, asset));
             let oracle = IEkuboOracleDispatcher { contract_address: self.oracle_address.read() };
-            let mut price = oracle.get_price_x128_over_last(asset, self.quote_asset.read(), period);
+            let price = oracle.get_price_x128_over_last(asset, self.quote_asset.read(), period);
 
             // Adjust the scale based on the difference in precision between the base asset 
             // and the quote asset

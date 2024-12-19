@@ -145,7 +145,7 @@ mod DefaultExtensionEK {
                 tokenization::{tokenization_component, tokenization_component::TokenizationTrait}
             }
         },
-        vendor::erc20::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait},
+        vendor::erc20::{IERC20MetadataDispatcher, IERC20MetadataDispatcherTrait},
     };
 
     component!(path: position_hooks_component, storage: position_hooks, event: PositionHooksEvents);
@@ -488,7 +488,7 @@ mod DefaultExtensionEK {
                 .is_empty() {
                     let asset = *asset_params_copy.pop_front().unwrap().asset;
                     assert!(asset != self.ekubo_oracle.quote_asset(), "add-quote-asset-disallowed");
-                    let asset_decimals = ERC20ABIDispatcher { contract_address: asset }.decimals();
+                    let asset_decimals = IERC20MetadataDispatcher { contract_address: asset }.decimals();
 
                     // set the oracle config
                     let params = *ekubo_oracle_params.pop_front().unwrap();
@@ -573,7 +573,7 @@ mod DefaultExtensionEK {
             assert!(get_caller_address() == self.owner.read(pool_id), "caller-not-owner");
             let asset = asset_params.asset;
             assert!(asset != self.ekubo_oracle.quote_asset(), "add-quote-asset-disallowed");
-            let asset_decimals = ERC20ABIDispatcher { contract_address: asset }.decimals();
+            let asset_decimals = IERC20MetadataDispatcher { contract_address: asset }.decimals();
 
             // set the oracle config
             self

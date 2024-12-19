@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod TestEkuboOracle {
-    //use core::serde::Serde;
     use snforge_std::{declare, ContractClass, ContractClassTrait};
     use starknet::{ContractAddress, contract_address_const};
     use vesu::{
