@@ -87,9 +87,8 @@ trait IDefaultExtensionEK<TContractState> {
     fn set_interest_rate_parameter(
         ref self: TContractState, pool_id: felt252, asset: ContractAddress, parameter: felt252, value: u256
     );
-    // TODO: maybe value can't be u64 because we need to be able to update quote_token which is an address?
     fn set_ekubo_oracle_parameter(
-        ref self: TContractState, pool_id: felt252, asset: ContractAddress, parameter: felt252, value: u64
+        ref self: TContractState, pool_id: felt252, asset: ContractAddress, parameter: felt252, value: felt252
     );
     fn set_liquidation_config(
         ref self: TContractState,
@@ -724,7 +723,7 @@ mod DefaultExtensionEK {
         /// * `parameter` - parameter name
         /// * `value` - value of the parameter
         fn set_ekubo_oracle_parameter(
-            ref self: ContractState, pool_id: felt252, asset: ContractAddress, parameter: felt252, value: u64
+            ref self: ContractState, pool_id: felt252, asset: ContractAddress, parameter: felt252, value: felt252
         ) {
             assert!(get_caller_address() == self.owner.read(pool_id), "caller-not-owner");
             self.ekubo_oracle.set_ekubo_oracle_parameter(pool_id, asset, parameter, value);

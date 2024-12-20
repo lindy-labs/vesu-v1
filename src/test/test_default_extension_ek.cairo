@@ -1046,7 +1046,7 @@ mod TestDefaultExtensionEK {
         create_pool_v3(extension_v3, config, users.creator, Option::None);
 
         extension_v3
-            .set_ekubo_oracle_parameter(config.pool_id_v3, config.collateral_asset.contract_address, 'timeout', 5_u64);
+            .set_ekubo_oracle_parameter(config.pool_id_v3, config.collateral_asset.contract_address, 'timeout', 5);
     }
 
     #[test]
@@ -1065,8 +1065,7 @@ mod TestDefaultExtensionEK {
         create_pool_v3(extension_v3, config, users.creator, Option::None);
 
         start_prank(CheatTarget::One(extension_v3.contract_address), users.creator);
-        extension_v3
-            .set_ekubo_oracle_parameter(config.pool_id_v3, config.collateral_asset.contract_address, 'a', 5_u64);
+        extension_v3.set_ekubo_oracle_parameter(config.pool_id_v3, config.collateral_asset.contract_address, 'a', 5);
         stop_prank(CheatTarget::One(extension_v3.contract_address));
     }
 
