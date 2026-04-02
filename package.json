@@ -11,7 +11,7 @@
     "bignumber.js": "9.1.2",
     "vesu_changelog": "https://github.com/vesuxyz/changelog.git#2c0a107453dc35dbe90a76094d8560f5f7a1b39e",
     "dotenv": "^16.3.1",
-    "lodash-es": "^4.17.21",
+    "lodash-es": "^4.18.1",
     "prettier": "^3.1.1",
     "prettier-plugin-organize-imports": "^3.2.4",
     "starknet": "v6.5.0",
